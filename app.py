@@ -86,7 +86,7 @@ def main():
     #Sidebar configuration
     st.sidebar.image("logo.jpg",width=120)
     st.sidebar.title("Weather Forecasting with LLM")
-    city = st.sidebar.text_input("Enter city name", "NewYork")
+    city = st.sidebar.text_input("Enter city name", "London")
     
     #API keys
     weather_api_key = "87caeed2c204b469eeb8e38da821712e" #Replace with your OpenlleatherMap API key
