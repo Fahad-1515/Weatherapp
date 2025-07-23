@@ -105,11 +105,11 @@ def main():
         if weather_data.get("cod") != "404":
             col1, col2=st.columns(2)
             with col1:
-                st.metric("Temperature ",f"{weather_data['main']['temp'] - 273.15:.2f}°C")
-                st.metric("Humidity", f"{weather_data['main']['humidity']}%")
+                st.metric("Temperature🌡️",f"{weather_data['main']['temp'] - 273.15:.2f}°C")
+                st.metric("Humidity ☁️", f"{weather_data['main']['humidity']}%")
             with col2:
-                st.metric("Pressure", f"{weather_data['main']['pressure']} hpa")
-                st.metric("Wind Speed", f"{weather_data['wind']['speed']} m/s")
+                st.metric("Pressure ༄", f"{weather_data['main']['pressure']} hpa")
+                st.metric("Wind Speed 💨", f"{weather_data['wind']['speed']} m/s")
 
             lat = weather_data['coord']['lat']
             lon = weather_data['coord']['lon']
