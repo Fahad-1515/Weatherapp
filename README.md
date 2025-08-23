@@ -1,6 +1,6 @@
 # Weatherapp🌡️☁️
 Using Streamlit platform And openai,openweathermap api 
-Show the Weather to a specific Location
+Show the Weather Forecast for 7 Days to a specific Location
 and Weekly Weatherforecast 
 
 https://weatherapp-4jxsupwkeattyvmbyndkz2.streamlit.app/
