@@ -4,7 +4,6 @@ import openai
 from datetime import datetime
 import pandas as pd
 
-# Page configuration
 st.set_page_config(
     page_title="WeatherAI Forecast",
     page_icon="🌤️",
@@ -12,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
 st.markdown("""
 <style>
     .main-header {
@@ -98,7 +96,6 @@ def create_temperature_chart_simple(forecast_data):
     """Create a simple temperature chart using Streamlit's native components"""
     st.markdown("### 🌡️ 24-Hour Temperature Forecast")
     
-    # Get next 24 hours data (8 intervals of 3 hours each)
     times = []
     temps = []
     
@@ -107,13 +104,11 @@ def create_temperature_chart_simple(forecast_data):
         times.append(time_str)
         temps.append(item['main']['temp'])
     
-    # Create a simple dataframe for display
     chart_data = pd.DataFrame({
         'Time': times,
         'Temperature (°C)': temps
     })
-    
-    # Display as a table with bars for visualization
+    #display visualization
     st.dataframe(
         chart_data,
         column_config={
@@ -129,7 +124,6 @@ def create_temperature_chart_simple(forecast_data):
         hide_index=True,
     )
     
-    # Also show as a line chart using st.line_chart
     temp_df = pd.DataFrame({'Temperature (°C)': temps}, index=times)
     st.line_chart(temp_df, height=300)
 
@@ -138,7 +132,6 @@ def display_weekly_forecast(data):
         st.markdown("---")
         st.subheader("📅 5-Day Weather Forecast")
         
-        # Group by date
         daily_data = {}
         for item in data['list']:
             date = datetime.fromtimestamp(item['dt']).strftime('%Y-%m-%d')
@@ -151,7 +144,6 @@ def display_weekly_forecast(data):
             daily_data[date]['temps'].append(item['main']['temp'])
             daily_data[date]['descriptions'].append(item['weather'][0]['description'])
         
-        # Create columns for each day
         cols = st.columns(5)
         
         for idx, (date_key, day_data) in enumerate(list(daily_data.items())[:5]):
@@ -159,7 +151,7 @@ def display_weekly_forecast(data):
                 avg_temp = sum(day_data['temps']) / len(day_data['temps'])
                 main_description = max(set(day_data['descriptions']), key=day_data['descriptions'].count)
                 
-                # Weather icons based on description
+                # Weather icons
                 icon = "❓"
                 if "clear" in main_description: icon = "☀️"
                 elif "cloud" in main_description: icon = "☁️"
@@ -182,7 +174,6 @@ def display_weekly_forecast(data):
         st.error(f"Error displaying forecast: {str(e)}")
 
 def main():
-    # Sidebar with improved design
     with st.sidebar:
         st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
         # Using emoji as fallback instead of image
@@ -194,7 +185,6 @@ def main():
         
         city = st.text_input("🏙️ Enter city name", "London")
         
-        # API keys (you should use st.secrets in production)
         weather_api_key = "87caeed2c204b469eeb8e38da821712e"
         openai_api_key = "your-openai-api-key-here"  # Replace with your actual key
         
@@ -205,7 +195,7 @@ def main():
             if 'get_weather' not in st.session_state:
                 st.session_state.get_weather = False
 
-    # Main content area
+
     if st.session_state.get_weather:
         city = st.session_state.get('current_city', city)
         st.markdown(f'<h1 class="main-header">🌤️ Weather in {city}</h1>', unsafe_allow_html=True)
@@ -235,7 +225,7 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # AI Description
+                # Ai Description
                 weather_description = generate_weather_description(weather_data, openai_api_key, city)
                 st.info(f"💡 **AI Insights:** {weather_description}")
             
@@ -274,7 +264,7 @@ def main():
             st.error("🏙️ City not found! Please check the spelling and try again.")
 
     else:
-        # Welcome screen when no city is searched
+        # When no city is searched
         st.markdown("""
         <div style='text-align: center; padding: 100px 20px;'>
             <h1 style='font-size: 3.5rem; color: #1E88E5; margin-bottom: 20px;'>🌤️ Welcome to WeatherAI</h1>
@@ -297,3 +287,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
