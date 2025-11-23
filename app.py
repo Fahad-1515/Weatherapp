@@ -2,8 +2,6 @@ import streamlit as st
 import requests
 import openai
 from datetime import datetime
-import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 
 # Page configuration
@@ -27,35 +25,45 @@ st.markdown("""
     .weather-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 15px;
-        padding: 20px;
+        padding: 25px;
         color: white;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
     }
     .metric-card {
         background: white;
         border-radius: 10px;
-        padding: 15px;
+        padding: 20px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         text-align: center;
         border-left: 4px solid #1E88E5;
+        margin-bottom: 15px;
     }
     .forecast-day {
         background: #f8f9fa;
         border-radius: 10px;
-        padding: 10px;
+        padding: 15px;
         text-align: center;
         margin: 5px;
+        border: 1px solid #e0e0e0;
+    }
+    .temp-chart {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 </style>
 """, unsafe_allow_html=True)
 
 def get_weather_data(city, weather_api_key):
     base_url = "http://api.openweathermap.org/data/2.5/weather?"
-    complete_url = base_url + "appid="+ weather_api_key + "&q=" + city
+    complete_url = base_url + "appid=" + weather_api_key + "&q=" + city
     response = requests.get(complete_url)
     return response.json()
 
-def generate_weather_description(data, openai_api_key):
+def generate_weather_description(data, openai_api_key, city):
     openai.api_key = openai_api_key
     
     try:    
@@ -86,34 +94,44 @@ def get_weekly_forecast(weather_api_key, lat, lon):
     response = requests.get(complete_url)
     return response.json()
 
-def create_temperature_chart(forecast_data):
-    """Create an interactive temperature chart"""
-    dates = []
+def create_temperature_chart_simple(forecast_data):
+    """Create a simple temperature chart using Streamlit's native components"""
+    st.markdown("### 🌡️ 24-Hour Temperature Forecast")
+    
+    # Get next 24 hours data (8 intervals of 3 hours each)
+    times = []
     temps = []
     
-    for item in forecast_data['list'][:8]:  # Next 24 hours in 3-hour intervals
-        dates.append(datetime.fromtimestamp(item['dt']).strftime('%H:%M'))
+    for item in forecast_data['list'][:8]:
+        time_str = datetime.fromtimestamp(item['dt']).strftime('%H:%M')
+        times.append(time_str)
         temps.append(item['main']['temp'])
     
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=dates, 
-        y=temps,
-        mode='lines+markers',
-        line=dict(color='#FF6B6B', width=3),
-        marker=dict(size=8, color='#FF6B6B'),
-        name='Temperature (°C)'
-    ))
+    # Create a simple dataframe for display
+    chart_data = pd.DataFrame({
+        'Time': times,
+        'Temperature (°C)': temps
+    })
     
-    fig.update_layout(
-        title="24-Hour Temperature Forecast",
-        xaxis_title="Time",
-        yaxis_title="Temperature (°C)",
-        template="plotly_white",
-        height=300
+    # Display as a table with bars for visualization
+    st.dataframe(
+        chart_data,
+        column_config={
+            "Time": "Time",
+            "Temperature (°C)": st.column_config.ProgressColumn(
+                "Temperature (°C)",
+                help="Temperature trend",
+                format="%.1f°C",
+                min_value=min(temps) - 5,
+                max_value=max(temps) + 5,
+            ),
+        },
+        hide_index=True,
     )
     
-    return fig
+    # Also show as a line chart using st.line_chart
+    temp_df = pd.DataFrame({'Temperature (°C)': temps}, index=times)
+    st.line_chart(temp_df, height=300)
 
 def display_weekly_forecast(data):
     try:
@@ -149,13 +167,14 @@ def display_weekly_forecast(data):
                 elif "snow" in main_description: icon = "❄️"
                 elif "thunder" in main_description: icon = "⛈️"
                 elif "mist" in main_description or "fog" in main_description: icon = "🌫️"
+                elif "drizzle" in main_description: icon = "🌦️"
                 
                 st.markdown(f"""
                 <div class="forecast-day">
                     <h4>{day_data['date']}</h4>
                     <div style="font-size: 2rem;">{icon}</div>
                     <h3>{avg_temp:.1f}°C</h3>
-                    <p>{main_description.capitalize()}</p>
+                    <p style="font-size: 0.8rem; margin: 5px 0;">{main_description.capitalize()}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -166,26 +185,29 @@ def main():
     # Sidebar with improved design
     with st.sidebar:
         st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-        st.image("https://cdn-icons-png.flaticon.com/512/1163/1163660.png", width=100)
+        # Using emoji as fallback instead of image
+        st.markdown("<h1 style='font-size: 4rem; margin: 0;'>🌤️</h1>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         
-        st.title("🌤️ WeatherAI")
+        st.title("WeatherAI Forecast")
         st.markdown("---")
         
         city = st.text_input("🏙️ Enter city name", "London")
         
-        # API keys (in a real app, use st.secrets)
+        # API keys (you should use st.secrets in production)
         weather_api_key = "87caeed2c204b469eeb8e38da821712e"
-        openai_api_key = "your-openai-api-key-here"
+        openai_api_key = "your-openai-api-key-here"  # Replace with your actual key
         
-        if st.button("🚀 Get Weather Forecast", use_container_width=True):
+        if st.button("🚀 Get Weather Forecast", use_container_width=True, type="primary"):
             st.session_state.get_weather = True
+            st.session_state.current_city = city
         else:
             if 'get_weather' not in st.session_state:
                 st.session_state.get_weather = False
 
     # Main content area
     if st.session_state.get_weather:
+        city = st.session_state.get('current_city', city)
         st.markdown(f'<h1 class="main-header">🌤️ Weather in {city}</h1>', unsafe_allow_html=True)
         
         with st.spinner('🔍 Fetching weather data...'):
@@ -198,6 +220,7 @@ def main():
             with col1:
                 temp = weather_data['main']['temp'] - 273.15
                 description = weather_data['weather'][0]['description']
+                feels_like = weather_data['main']['feels_like'] - 273.15
                 
                 st.markdown(f"""
                 <div class="weather-card">
@@ -206,30 +229,30 @@ def main():
                         <div style="font-size: 4rem; font-weight: bold;">{temp:.1f}°C</div>
                         <div>
                             <h3 style="margin: 0; font-size: 1.5rem;">{description.title()}</h3>
-                            <p>Feels like {(weather_data['main']['feels_like'] - 273.15):.1f}°C</p>
+                            <p>Feels like {feels_like:.1f}°C</p>
                         </div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 # AI Description
-                weather_description = generate_weather_description(weather_data, openai_api_key)
+                weather_description = generate_weather_description(weather_data, openai_api_key, city)
                 st.info(f"💡 **AI Insights:** {weather_description}")
             
             with col2:
                 # Weather metrics in cards
                 metrics_data = [
                     ("💧 Humidity", f"{weather_data['main']['humidity']}%", "#4FC3F7"),
-                    ("🌬️ Wind", f"{weather_data['wind']['speed']} m/s", "#4DB6AC"),
+                    ("🌬️ Wind Speed", f"{weather_data['wind']['speed']} m/s", "#4DB6AC"),
                     ("📊 Pressure", f"{weather_data['main']['pressure']} hPa", "#FFB74D"),
-                    ("👁️ Visibility", f"{weather_data.get('visibility', 'N/A')} m", "#BA68C8")
+                    ("👁️ Visibility", f"{weather_data.get('visibility', 'N/A')}", "#BA68C8")
                 ]
                 
                 for metric, value, color in metrics_data:
                     st.markdown(f"""
-                    <div class="metric-card" style="border-left-color: {color}; margin-bottom: 10px;">
-                        <h4 style="margin: 0; color: {color};">{metric}</h4>
-                        <h2 style="margin: 5px 0; color: #333;">{value}</h2>
+                    <div class="metric-card" style="border-left-color: {color};">
+                        <h4 style="margin: 0; color: {color}; font-size: 0.9rem;">{metric}</h4>
+                        <h2 style="margin: 5px 0; color: #333; font-size: 1.5rem;">{value}</h2>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -240,8 +263,8 @@ def main():
             forecast_data = get_weekly_forecast(weather_api_key, lat, lon)
             
             if forecast_data.get("cod") != "404":
-                # Temperature chart
-                st.plotly_chart(create_temperature_chart(forecast_data), use_container_width=True)
+                # Temperature chart using native Streamlit components
+                create_temperature_chart_simple(forecast_data)
                 
                 # Weekly forecast
                 display_weekly_forecast(forecast_data)
@@ -260,6 +283,14 @@ def main():
             </p>
             <div style='font-size: 4rem; margin: 40px 0;'>
                 ☀️ 🌧️ ⛅ ❄️ 🌪️
+            </div>
+            <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        color: white; padding: 30px; border-radius: 15px; max-width: 500px; margin: 0 auto;'>
+                <h3>🚀 Features</h3>
+                <p>• Real-time weather data<br>
+                   • AI-powered descriptions<br>
+                   • 5-day forecast<br>
+                   • Beautiful visual interface</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
